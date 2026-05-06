@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Degen Empire</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --card: #12121a;
+            --green: #00ff88;
+            --red: #ff4466;
+            --gold: #ffaa00;
+            --text: #ccc;
+            --border: #2a2a3a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .container { max-width: 500px; margin: 0 auto; padding: 10px; }
+        
+        /* Header */
+        .header {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-left { display: flex; align-items: center; gap: 8px; }
+        .rank-badge {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .rank-Бомж { background: #333; color: #999; }
+        .rank-Нищий { background: #444; color: #fff; }
+        .rank-Барыга { background: #1a5c1a; color: #0f0; }
+        .rank-Майнер { background: #1a3a6c; color: #4af; }
+        .rank-Кит { background: #3a1a6c; color: #c4f; }
+        .rank-Мегакит { background: #6c5a1a; color: #ff0; }
+        .rank-Деген { background: #6c1a1a; color: #f44; }
+        
+        .balance-display { text-align: right; }
+        .balance-sat { font-size: 20px; font-weight: bold; color: var(--green); }
+        .balance-usd { font-size: 11px; color: #888; }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .tab {
+            flex: 1;
+            min-width: 60px;
+            padding: 10px 8px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 11px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .tab.active { background: #1a3a2a; border-color: var(--green); color: var(--green); }
+        
+        /* Main area */
+        .main-area { position: relative; min-height: 350px; }
+        
+        /* Tap circle */
+        .tap-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 0;
+        }
+        .tap-circle {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #1a3a2a 0%, #0a1a0f 100%);
+            border: 3px solid var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+            position: relative;
+        }
+        .tap-circle:active { transform: scale(0.92); }
+        .tap-circle-text {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--green);
+            text-align: center;
+            line-height: 1.4;
+        }
+        .tap-counter {
+            margin-top: 16px;
+            font-size: 18px;
+            color: var(--green);
+            font-weight: bold;
+        }
+        .tap-rate {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 8px;
+        }
+        .card h3 {
+            font-size: 14px;
+            color: var(--green);
+            margin-bottom: 8px;
+        }
+        .card-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-row:last-child { border-bottom: none; }
+        
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            width: 100%;
+            text-align: center;
+            transition: opacity 0.2s;
+        }
+        .btn:active { opacity: 0.7; }
+        .btn-green { background: var(--green); color: #000; }
+        .btn-red { background: var(--red); color: #fff; }
+        .btn-gold { background: var(--gold); color: #000; }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--green);
+            color: var(--green);
+        }
+        .btn-sm { padding: 8px 14px; font-size: 12px; width: auto; }
+        
+        /* Input */
+        input, select {
+            width: 100%;
+            padding: 10px;
+            background: #0a0a0f;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 6px 0;
+        }
+        
+        /* Positions */
+        .position-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 6px;
+        }
+        .position-long { border-left: 3px solid var(--green); }
+        .position-short { border-left: 3px solid var(--red); }
+        .pnl-positive { color: var(--green); }
+        .pnl-negative { color: var(--red); }
+        
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--card);
+            border: 1px solid var(--green);
+            border-radius: 16px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h2 { color: var(--green); margin-bottom: 12px; font-size: 16px; }
+        .modal-close {
+            float: right;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        /* Event ticker */
+        .event-ticker {
+            background: var(--card);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: var(--gold);
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        /* Price ticker */
+        .price-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 4px;
+            font-size: 10px;
+            margin-bottom: 8px;
+        }
+        .price-item {
+            background: var(--card);
+            padding: 6px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+        .price-up { color: var(--green); }
+        .price-down { color: var(--red); }
+        
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .mt-10 { margin-top: 10px; }
+        .mb-10 { margin-bottom: 10px; }
+        .gap-5 { display: flex; gap: 5px; }
+    </style>
+</head>
+<body>
+<div class="container" id="app">
+    
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <span class="rank-badge" id="rankBadge">Бомж</span>
+            <span style="font-size:12px;color:#888;" id="usernameDisplay"></span>
+        </div>
+        <div class="balance-display">
+            <div class="balance-sat" id="satBalance">0</div>
+            <div class="balance-usd" id="usdValue">~$0.00</div>
+        </div>
+    </div>
+    
+    <!-- Event ticker -->
+    <div class="event-ticker hidden" id="eventTicker"></div>
+    
+    <!-- Price ticker -->
+    <div class="price-grid" id="priceGrid"></div>
+    
+    <!-- Tabs -->
+    <div class="tabs" id="tabsContainer">
+        <div class="tab active" data-tab="tap">🖐 Тапы</div>
+        <div class="tab" data-tab="mining">⛏ Майнинг</div>
+        <div class="tab" data-tab="trade">📈 Спот</div>
+        <div class="tab" data-tab="futures">⚡ Фьючи</div>
+        <div class="tab" data-tab="business">🏢 Бизнес</div>
+        <div class="tab" data-tab="battlepass">💀 Батл-пасс</div>
+        <div class="tab" data-tab="leaderboard">🏆 Топ</div>
+    </div>
+    
+    <!-- Main content -->
+    <div class="main-area" id="mainArea"></div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+// ============================================================
+// TELEGRAM WEBAPP INIT
+// ============================================================
+const tg = window.Telegram.WebApp;
+tg.expand();
+tg.ready();
+
+const userId = tg.initDataUnsafe?.user?.id || new URLSearchParams(location.search).get('user_id') || 12345;
+const username = tg.initDataUnsafe?.user?.username || tg.initDataUnsafe?.user?.first_name || 'Анон';
+
+document.getElementById('usernameDisplay').textContent = username;
+
+const API = `http://localhost:8000`;
+let currentTab = 'tap';
+let btcPrice = 65000;
+let userData = null;
+
+// ============================================================
+// API FUNCTIONS
+// ============================================================
+async function apiCall(endpoint, method='GET', body=null) {
+    const opts = { method, headers: {'Content-Type':'application/json'} };
+    if (body) opts.body = JSON.stringify(body);
+    const resp = await fetch(`${API}${endpoint}`, opts);
+    return resp.json();
+}
+
+async function loadUser() {
+    const data = await apiCall(`/api/user/${userId}`);
+    userData = data;
+    btcPrice = data.btc_price;
+    
+    document.getElementById('satBalance').textContent = Math.floor(data.sat_balance).toLocaleString();
+    
+    const totalBTC = data.btc_value;
+    document.getElementById('usdValue').textContent = `~$${(totalBTC * btcPrice).toLocaleString()}`;
+    
+    document.getElementById('rankBadge').textContent = data.rank;
+    document.getElementById('rankBadge').className = `rank-badge rank-${data.rank}`;
+    
+    updatePriceGrid(data);
+    updateEventTicker(data.events);
+    
+    return data;
+}
+
+function updatePriceGrid(data) {
+    if (!data || !data.prices) return;
+    const grid = document.getElementById('priceGrid');
+    let html = '';
+    for (const [sym, price] of Object.entries(data.prices)) {
+        const change = data.changes?.[sym] || 0;
+        const cls = change >= 0 ? 'price-up' : 'price-down';
+        const sign = change >= 0 ? '+' : '';
+        html += `<div class="price-item">
+            <b>${sym}</b><br>
+            $${price.toFixed(price>1?2:8)}<br>
+            <span class="${cls}">${sign}${change.toFixed(2)}%</span>
+        </div>`;
+    }
+    grid.innerHTML = html;
+}
+
+function updateEventTicker(events) {
+    const ticker = document.getElementById('eventTicker');
+    if (!events || events.length === 0) {
+        ticker.classList.add('hidden');
+        return;
+    }
+    const last = events[events.length - 1];
+    ticker.textContent = last.text || last;
+    ticker.classList.remove('hidden');
+}
+
+// ============================================================
+// TAP
+// ============================================================
+function renderTap() {
+    const main = document.getElementById('mainArea');
+    const tapPower = userData?.user?.tap_power || 1;
+    const totalTaps = userData?.user?.total_taps || 0;
+    
+    main.innerHTML = `
+        <div class="tap-container">
+            <div class="tap-circle" id="tapCircle">
+                <div class="tap-circle-text">
+                    💀<br>ТАПАЙ
+                </div>
+            </div>
+            <div class="tap-counter" id="tapCounter">${totalTaps.toLocaleString()} тапов</div>
+            <div class="tap-rate">+${tapPower} сат/тап • Множитель x${(userData?.rank_bonus?.tap || 1).toFixed(2)}</div>
+        </div>
+        <div class="card">
+            <h3>⚡ Апгрейды тапов</h3>
+            <div class="card-row">
+                <span>☕ Кофеин (+1 сила тапа)</span>
+                <button class="btn btn-outline btn-sm" onclick="upgradeTap()">1000 сат</button>
+            </div>
+            <div class="card-row">
+                <span>🖐 Мультитап (+25%)</span>
+                <button class="btn btn-outline btn-sm" onclick="upgradeMultiTap()">5000 сат</button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('tapCircle').addEventListener('click', doTap);
+}
+
+async function doTap() {
+    try {
+        const data = await apiCall('/api/tap', 'POST', { user_id: parseInt(userId), taps: 1 });
+        if (data.rank) {
+            document.getElementById('rankBadge').textContent = data.rank;
+            document.getElementById('rankBadge').className = `rank-badge rank-${data.rank}`;
+        }
+        document.getElementById('satBalance').textContent = Math.floor(data.new_balance).toLocaleString();
+        document.getElementById('tapCounter').textContent = `${(data.total_taps || 0).toLocaleString()} тапов`;
+        
+        const viber = navigator.vibrate ? navigator.vibrate(10) : null;
+    } catch(e) {}
+}
+
+async function upgradeTap() {
+    const data = await apiCall('/api/tap', 'POST', { user_id: parseInt(userId), taps: 0, upgrade: 'tap_power' });
+    if (data.error) alert(data.error);
+    else await loadUser();
+}
+
+async function upgradeMultiTap() {
+    const data = await apiCall('/api/tap', 'POST', { user_id: parseInt(userId), taps: 0, upgrade: 'multi_tap' });
+    if (data.error) alert(data.error);
+    else await loadUser();
+}
+
+// ============================================================
+// MINING
+// ============================================================
+function renderMining() {
+    const hashrate = userData?.user?.mining_hashrate || 0;
+    const level = userData?.user?.mining_level || 0;
+    const income = hashrate * (1.0 / btcPrice) * 3600; // сатоши в час
+    
+    const main = document.getElementById('mainArea');
+    main.innerHTML = `
+        <div class="card">
+            <h3>⛏ Майнинг-ферма (Ур. ${level})</h3>
+            <div style="font-size:24px;color:var(--green);">⚡ ${hashrate.toFixed(1)} H/s</div>
+            <div style="font-size:12px;color:#888;">Доход: ~${income.toFixed(0)} сат/час</div>
+        </div>
+        <div class="card">
+            <h3>🛒 Магазин ферм</h3>
+            <div class="card-row">
+                <span>🖥 GTX 1060 (+10 H/s)</span>
+                <button class="btn btn-outline btn-sm" onclick="buyMiner(1)">50 сат</button>
+            </div>
+            <div class="card-row">
+                <span>🖥 RTX 3080 (+50 H/s)</span>
+                <button class="btn btn-outline btn-sm" onclick="buyMiner(2)">500 сат</button>
+            </div>
+            <div class="card-row">
+                <span>🖥 RTX 4090 (+200 H/s)</span>
+                <button class="btn btn-outline btn-sm" onclick="buyMiner(3)">5000 сат</button>
+            </div>
+            <div class="card-row">
+                <span>🏭 ASIC Antminer (+1000 H/s)</span>
+                <button class="btn btn-outline btn-sm" onclick="buyMiner(4)">50000 сат</button>
+            </div>
+        </div>
+    `;
+}
+
+async function buyMiner(tier) {
+    const data = await apiCall('/api/tap', 'POST', { 
+        user_id: parseInt(userId), 
+        taps: 0, 
+        upgrade: 'mining',
+        tier: tier 
+    });
+    if (data.error) alert(data.error);
+    else await loadUser().then(renderMining);
+}
+
+// ============================================================
+// TRADE (SPOT)
+// ============================================================
+function renderTrade() {
+    const holdings = userData?.holdings || {};
+    const prices = userData?.prices || {};
+    
+    let coins = '';
+    for (const [sym, amount] of Object.entries(holdings)) {
+        if (sym === 'BTC') continue;
+        const price = prices[sym] || 0;
+        const value = amount * price;
+        coins += `<div class="card-row">
+            <span><b>${sym}</b> ${amount.toFixed(sym==='PEPE'||sym==='SHIB'||sym==='BONK'?0:4)}</span>
+            <span style="font-size:12px;color:#888;">≈${value.toFixed(2)} USD</span>
+        </div>`;
+    }
+    
+    const main = document.getElementById('mainArea');
+    main.innerHTML = `
+        <div class="card">
+            <h3>💼 Портфель</h3>
+            <div class="card-row">
+                <span><b>BTC</b> ${(holdings.BTC||0).toFixed(8)}</span>
+                <span style="font-size:12px;color:#888;">≈${((holdings.BTC||0)*btcPrice).toFixed(2)} USD</span>
+            </div>
+            ${coins}
+        </div>
+        <div class="card">
+            <h3>📈 Торговать</h3>
+            <select id="tradeSymbol">
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+                <option value="LTC">LTC</option>
+                <option value="DOGE">DOGE</option>
+                <option value="SOL">SOL</option>
+                <option value="XRP">XRP</option>
+                <option value="PEPE">PEPE</option>
+                <option value="SHIB">SHIB</option>
+                <option value="BONK">BONK</option>
+            </select>
+            <input type="number" id="tradeAmount" placeholder="Сумма" step="0.0001">
+            <div class="gap-5 mt-10">
+                <button class="btn btn-green btn-sm" onclick="doTrade('buy')">КУПИТЬ</button>
+                <button class="btn btn-red btn-sm" onclick="doTrade('sell')">ПРОДАТЬ</button>
+            </div>
+        </div>
+    `;
+}
+
+async function doTrade(action) {
+    const symbol = document.getElementById('tradeSymbol')?.value || 'BTC';
+    const amount = parseFloat(document.getElementById('tradeAmount')?.value || 0);
+    if (!amount || amount <= 0) return alert('Введи сумму');
+    
+    const data = await apiCall('/api/trade', 'POST', {
+        user_id: parseInt(userId),
+        symbol, action, amount
+    });
+    if (data.error) alert(data.error);
+    else {
+        alert(`${action.toUpperCase()} ${amount} ${symbol} по $${data.price}`);
+        await loadUser();
+        renderTrade();
+    }
+}
+
+// ============================================================
+// FUTURES
+// ============================================================
+function renderFutures() {
+    loadPositions();
+    const main = document.getElementById('mainArea');
+    main.innerHTML = `
+        <div class="card">
+            <h3>⚡ Открыть позицию</h3>
+            <select id="futSymbol">
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+                <option value="DOGE">DOGE</option>
+                <option value="SOL">SOL</option>
+                <option value="PEPE">PEPE</option>
+            </select>
+            <select id="futSide">
+                <option value="long">LONG 📈</option>
+                <option value="short">SHORT 📉</option>
+            </select>
+            <input type="number" id="futAmount" placeholder="Размер позиции (монеты)" step="0.001">
+            <input type="number" id="futLeverage" placeholder="Плечо (1-100)" value="10" min="1" max="100">
+            <input type="number" id="futTP" placeholder="Тейк-профит (цена)" step="0.01">
+            <input type="number" id="futSL" placeholder="Стоп-лосс (цена)" step="0.01">
+            <button class="btn btn-gold mt-10" onclick="openFutures()">🚀 ОТКРЫТЬ ПОЗИЦИЮ</button>
+        </div>
+        <div id="positionsContainer"></div>
+    `;
+}
+
+async function openFutures() {
+    const symbol = document.getElementById('futSymbol')?.value || 'BTC';
+    const side = document.getElementById('futSide')?.value || 'long';
+    const amount = parseFloat(document.getElementById('futAmount')?.value || 0);
+    const leverage = parseInt(document.getElementById('futLeverage')?.value || 10);
+    const takeProfit = parseFloat(document.getElementById('futTP')?.value || 0);
+    const stopLoss = parseFloat(document.getElementById('futSL')?.value || 0);
+    
+    if (!amount || amount <= 0) return alert('Введи размер позиции');
+    if (leverage < 1 || leverage > 100) return alert('Плечо: 1-100');
+    
+    const data = await apiCall('/api/trade/futures', 'POST', {
+        user_id: parseInt(userId), symbol, side, amount, leverage, take_profit: takeProfit, stop_loss: stopLoss
+    });
+    
+    if (data.error) return alert(data.error);
+    
+    alert(`Позиция открыта!\nВход: $${data.entry_price}\nЛиквидация: $${data.liquidation_price.toFixed(2)}\nПлечо: ${data.leverage}x`);
+    await loadUser();
+    renderFutures();
+}
+
+async function loadPositions() {
+    const data = await apiCall(`/api/positions/${userId}`);
+    const container = document.getElementById('positionsContainer');
+    if (!container) return;
+    
+    if (!data.positions || data.positions.length === 0) {
+        container.innerHTML = '<div class="card text-center">Нет открытых позиций</div>';
+        return;
+    }
+    
+    let html = '<div class="card"><h3>📊 Открытые позиции</h3>';
+    for (const p of data.positions) {
+        const cls = p.side === 'long' ? 'position-long' : 'position-short';
+        const pnlCls = p.pnl_pct >= 0 ? 'pnl-positive' : 'pnl-negative';
+        html += `
+        <div class="position-card ${cls}">
+            <b>${p.symbol} ${p.side.toUpperCase()}</b> ${p.leverage}x<br>
+            Вход: $${p.entry_price.toFixed(4)} | Сейчас: $${(p.current_price||0).toFixed(4)}<br>
+            <span class="${pnlCls}">PNL: ${(p.pnl_pct||0).toFixed(2)}%</span><br>
+            <button class="btn btn-red btn-sm mt-10" onclick="closePosition('${p.id}')">Закрыть</button>
+        </div>`;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+async function closePosition(posId) {
+    if (!confirm('Закрыть позицию?')) return;
+    const data = await apiCall('/api/trade/close', 'POST', {
+        user_id: parseInt(userId), position_id: posId
+    });
+    if (data.error) alert(data.error);
+    else {
+        alert(`Закрыто!\nPNL: ${data.pnl_btc?.toFixed(8)} BTC (${data.pnl_pct?.toFixed(2)}%)`);
+        await loadUser();
+        renderFutures();
+    }
+}
+
+// ============================================================
+// BUSINESS
+// ============================================================
+function renderBusiness() {
+    const main = document.getElementById('mainArea');
+    main.innerHTML = `
+        <div class="card">
+            <h3>🏢 Мой бизнес</h3>
+            <button class="btn btn-green btn-sm" onclick="showCreateBusiness()">+ Создать бизнес</button>
+            <div id="myBusinesses"></div>
+        </div>
+        <div class="card">
+            <h3>📋 Все бизнесы</h3>
+            <div id="allBusinesses">Загрузка...</div>
+        </div>
+    `;
+    loadBusinesses();
+}
+
+async function loadBusinesses() {
+    const data = await apiCall('/api/leaderboard/business');
+    if (data.data) {
+        let html = '';
+        for (const b of data.data.slice(0, 20)) {
+            html += `<div class="card-row">
+                <span><b>${b.ticker}</b> (${b.name})</span>
+                <button class="btn btn-outline btn-sm" onclick="buyShares(${b.id})">Купить</button>
+            </div>`;
+        }
+        document.getElementById('allBusinesses').innerHTML = html || 'Нет бизнесов';
+    }
+}
+
+function showCreateBusiness() {
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('modalContent').innerHTML = `
+        <button class="modal-close" onclick="closeModal()">✖</button>
+        <h2>Создать бизнес (0.5 BTC)</h2>
+        <input type="text" id="bizName" placeholder="Название">
+        <input type="text" id="bizTicker" placeholder="Тикер (например, DEGEN)" maxlength="8">
+        <button class="btn btn-green mt-10" onclick="createBusiness()">Создать</button>
+    `;
+}
+
+async function createBusiness() {
+    const name = document.getElementById('bizName')?.value;
+    const ticker = document.getElementById('bizTicker')?.value?.toUpperCase();
+    if (!name || !ticker) return alert('Заполни поля');
+    
+    const data = await apiCall('/api/business/create', 'POST', {
+        user_id: parseInt(userId), name, ticker
+    });
+    if (data.error) alert(data.error);
+    else {
+        alert(`Бизнес ${data.ticker} создан!`);
+        closeModal();
+        await loadUser();
+        renderBusiness();
+    }
+}
+
+async function buyShares(businessId) {
+    const shares = prompt('Сколько акций купить?');
+    if (!shares || parseInt(shares) <= 0) return;
+    
+    const data = await apiCall('/api/business/buy_shares', 'POST', {
+        user_id: parseInt(userId), business_id: businessId, shares: parseInt(shares)
+    });
+    if (data.error) alert(data.error);
+    else {
+        alert(`Куплено ${shares} акций за ${data.total_cost?.toFixed(8)} BTC`);
+        await loadUser();
+        renderBusiness();
+    }
+}
+
+// ============================================================
+// BATTLE PASS
+// ============================================================
+function renderBattlepass() {
+    const main = document.getElementById('mainArea');
+    main.innerHTML = '<div id="bpContent">Загрузка...</div>';
+    loadBattlepass();
+}
+
+async function loadBattlepass() {
+    const data = await apiCall(`/api/battlepass/${userId}`);
+    const level = data.level || 1;
+    const xp = data.xp || 0;
+    const premium = data.premium || 0;
+    const xpNeeded = level * 1000;
+    const progress = ((xp / xpNeeded) * 100).toFixed(0);
+    
+    document.getElementById('bpContent').innerHTML = `
+        <div class="card">
+            <h3>💀 БАТЛ-ПАСС (Сезон 1)</h3>
+            <div style="font-size:28px;color:var(--green);">Ур. ${level}</div>
+            <div style="background:#1a1a2a;border-radius:10px;height:20px;margin:10px 0;">
+                <div style="background:var(--green);height:100%;width:${progress}%;border-radius:10px;"></div>
+            </div>
+            <div style="font-size:11px;">${xp}/${xpNeeded} XP</div>
+            ${premium ? '<div style="color:var(--gold);">👑 ПРЕМИУМ</div>' : '<button class="btn btn-gold btn-sm mt-10" onclick="buyPremium()">Купить премиум (0.01 BTC)</button>'}
+        </div>
+        <div class="card">
+            <h3>🎁 Награды</h3>
+            <div class="card-row"><span>Ур. 1</span><span>+5% тапы ✅</span></div>
+            <div class="card-row"><span>Ур. 5</span><span>Ферма GTX 1060 ${level>=5?'✅':''}</span></div>
+            <div class="card-row"><span>Ур. 10</span><span>1000 сатоши ${level>=10?'✅':''}</span></div>
+            <div class="card-row"><span>Ур. 15</span><span>+10% майнинг ${level>=15?'✅':''}</span></div>
+            <div class="card-row"><span>Ур. 20</span><span>Скин (премиум) ${level>=20&&premium?'✅':''}</span></div>
+            <div class="card-row"><span>Ур. 30</span><span>Свой токен (премиум) ${level>=30&&premium?'✅':''}</span></div>
+        </div>
+    `;
+}
+
+async function buyPremium() {
+    const data = await apiCall('/api/battlepass/buy_premium', 'POST', { user_id: parseInt(userId) });
+    if (data.error) alert(data.error);
+    else {
+        alert('Премиум активирован!');
+        await loadUser();
+        loadBattlepass();
+    }
+}
+
+// ============================================================
+// LEADERBOARD
+// ============================================================
+function renderLeaderboard() {
+    const main = document.getElementById('mainArea');
+    main.innerHTML = `
+        <div class="card">
+            <h3>🏆 ЛИДЕРБОРД</h3>
+            <button class="btn btn-outline btn-sm" onclick="loadLeaderboard('capital')">По капиталу</button>
+            <button class="btn btn-outline btn-sm" onclick="loadLeaderboard('business')">По бизнесу</button>
+            <div id="lbContent">Загрузка...</div>
+        </div>
+    `;
+    loadLeaderboard('capital');
+}
+
+async function loadLeaderboard(category) {
+    const data = await apiCall(`/api/leaderboard/${category}`);
+    if (!data.data || data.data.length === 0) {
+        document.getElementById('lbContent').innerHTML = 'Нет данных';
+        return;
+    }
+    let html = '';
+    let i = 1;
+    for (const item of data.data.slice(0, 50)) {
+        const name = item.username || item.first_name || 'Анон';
+        const value = item.total_btc?.toFixed(4) || item.current_price || '';
+        html += `<div class="card-row">
+            <span>${i}. ${name}</span>
+            <span>${typeof value === 'number' ? value.toFixed(4)+' BTC' : value}</span>
+        </div>`;
+        i++;
+    }
+    document.getElementById('lbContent').innerHTML = html;
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`[data-tab="${tab}"]`)?.classList.add('active');
+    
+    switch(tab) {
+        case 'tap': renderTap(); break;
+        case 'mining': renderMining(); break;
+        case 'trade': renderTrade(); break;
+        case 'futures': renderFutures(); break;
+        case 'business': renderBusiness(); break;
+        case 'battlepass': renderBattlepass(); break;
+        case 'leaderboard': renderLeaderboard(); break;
+    }
+}
+
+document.getElementById('tabsContainer').addEventListener('click', (e) => {
+    const tab = e.target.closest('.tab');
+    if (tab) switchTab(tab.dataset.tab);
+});
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+    await loadUser();
+    renderTap();
+    setInterval(async () => {
+        await loadUser();
+        if (currentTab === 'futures') loadPositions();
+        if (currentTab === 'mining') renderMining();
+    }, 10000);
+}
+
+init();
+</script>
+</body>
+  </html>

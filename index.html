@@ -6,7 +6,6 @@
     <title>Adaptive Neon Habit Tracker</title>
     <style>
         :root {
-            /* Стандартная тема (Purple) */
             --accent: #bc13fe;
             --bg-dark: #000000;
             --glass-bg: rgba(188, 19, 254, 0.05);
@@ -38,7 +37,6 @@
             margin: 0 auto;
         }
 
-        /* Адаптивная карточка */
         .glass-card {
             background: linear-gradient(135deg, var(--glass-bg), rgba(0, 0, 0, 0.6));
             backdrop-filter: blur(25px);
@@ -74,7 +72,6 @@
         }
         .theme-btn.active-neon { border-color: #fff; box-shadow: 0 0 15px currentColor; transform: scale(1.1); }
 
-        /* Элементы управления */
         .period-selector {
             display: flex;
             background: rgba(0, 0, 0, 0.4);
@@ -102,7 +99,6 @@
             text-shadow: 0 0 5px #fff;
         }
 
-        /* Инпуты */
         input[type="text"] {
             background: transparent;
             border: none;
@@ -119,7 +115,6 @@
             text-shadow: 0 0 8px var(--accent);
         }
 
-        /* Кольцо */
         #progress-bar {
             stroke: var(--accent);
             filter: drop-shadow(0 0 10px var(--accent));
@@ -129,7 +124,6 @@
             font-weight: 900;
         }
 
-        /* Кнопки эмодзи */
         .emoji-group {
             display: flex;
             background: rgba(0,0,0,0.3);
@@ -190,11 +184,11 @@
 <div class="container">
     <div class="header">
         <div class="theme-buttons">
-            <div class="theme-btn active-neon" style="background: #bc13fe; color: #bc13fe;" onclick="setTheme('purple', this)"></div>
-            <div class="theme-btn" style="background: #ffffff; color: #ffffff;" onclick="setTheme('white', this)"></div>
-            <div class="theme-btn" style="background: #00ff80; color: #00ff80;" onclick="setTheme('green', this)"></div>
+            <div id="btn-purple" class="theme-btn" style="background: #bc13fe; color: #bc13fe;" onclick="setTheme('purple', this)"></div>
+            <div id="btn-white" class="theme-btn" style="background: #ffffff; color: #ffffff;" onclick="setTheme('white', this)"></div>
+            <div id="btn-green" class="theme-btn" style="background: #00ff80; color: #00ff80;" onclick="setTheme('green', this)"></div>
         </div>
-        <select id="lang" onchange="updateLang()">
+        <select id="lang" onchange="updateLang(true)">
             <option value="ru">RU</option>
             <option value="en">EN</option>
         </select>
@@ -232,10 +226,9 @@
     let stars = [];
     let currentAccent = '#bc13fe';
 
+    // Звезды
     class Star {
-        constructor() {
-            this.init();
-        }
+        constructor() { this.init(); }
         init() {
             this.x = Math.random() * canvas.width;
             this.y = Math.random() * canvas.height;
@@ -249,9 +242,7 @@
         }
         draw() {
             ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
         }
     }
 
@@ -268,65 +259,103 @@
         requestAnimationFrame(animate);
     }
 
-    // --- СМЕНА ТЕМЫ ---
+    // Сохранение данных
+    function saveData() {
+        const habits = [];
+        document.querySelectorAll('.habit-row').forEach(row => {
+            const name = row.querySelector('input[type="text"]').value;
+            const time = row.querySelector('input[type="time"]').value;
+            const activeEmojiIdx = Array.from(row.querySelectorAll('.emoji-btn')).findIndex(btn => btn.classList.contains('active'));
+            habits.push({ name, time, activeEmojiIdx });
+        });
+
+        const appData = {
+            theme: document.querySelector('.theme-btn.active-neon').id.replace('btn-', ''),
+            lang: document.getElementById('lang').value,
+            habits: habits
+        };
+        localStorage.setItem('neonHabitData', JSON.stringify(appData));
+    }
+
+    // Загрузка данных
+    function loadData() {
+        const saved = localStorage.getItem('neonHabitData');
+        if (!saved) {
+            addHabitRow(); // Если пусто, добавим одну строку
+            setTheme('purple', document.getElementById('btn-purple'));
+            return;
+        }
+
+        const data = JSON.parse(saved);
+        
+        // Восстановление темы
+        setTheme(data.theme, document.getElementById('btn-' + data.theme));
+        
+        // Восстановление языка
+        document.getElementById('lang').value = data.lang;
+        updateLang(false);
+
+        // Восстановление привычек
+        data.habits.forEach(h => {
+            addHabitRow(h.name, h.time, h.activeEmojiIdx);
+        });
+        calcProgress();
+    }
+
     function setTheme(theme, btn) {
         document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active-neon'));
         btn.classList.add('active-neon');
 
         const root = document.documentElement;
-        let accent, bg, glass, border;
+        let accent, glass, border;
 
-        switch(theme) {
-            case 'purple':
-                accent = '#bc13fe'; bg = '#000000'; 
-                glass = 'rgba(188, 19, 254, 0.07)'; border = 'rgba(188, 19, 254, 0.3)';
-                break;
-            case 'white':
-                accent = '#ffffff'; bg = '#000000'; 
-                glass = 'rgba(255, 255, 255, 0.05)'; border = 'rgba(255, 255, 255, 0.2)';
-                break;
-            case 'green':
-                accent = '#00ff80'; bg = '#000000'; 
-                glass = 'rgba(0, 255, 128, 0.07)'; border = 'rgba(0, 255, 128, 0.3)';
-                break;
+        if(theme === 'purple') {
+            accent = '#bc13fe'; glass = 'rgba(188, 19, 254, 0.07)'; border = 'rgba(188, 19, 254, 0.3)';
+        } else if(theme === 'white') {
+            accent = '#ffffff'; glass = 'rgba(255, 255, 255, 0.05)'; border = 'rgba(255, 255, 255, 0.2)';
+        } else {
+            accent = '#00ff80'; glass = 'rgba(0, 255, 128, 0.07)'; border = 'rgba(0, 255, 128, 0.3)';
         }
 
         currentAccent = accent;
         root.style.setProperty('--accent', accent);
-        root.style.setProperty('--bg-dark', bg);
         root.style.setProperty('--glass-bg', glass);
         root.style.setProperty('--glass-border', border);
-        
-        // Обновляем цвет звезд
         stars.forEach(s => s.color = Math.random() > 0.7 ? accent : '#fff');
+        saveData();
     }
 
-    function addHabitRow() {
+    function addHabitRow(name = '', time = '08:00', activeEmojiIdx = -1) {
         const row = document.createElement('div');
         row.className = 'habit-row glass-card';
         row.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <input type="text" placeholder="Habit name...">
-                <input type="time" value="08:00" style="background:transparent; color:#fff; border:none; opacity:0.3;">
+                <input type="text" placeholder="Habit name..." value="${name}" oninput="saveData()">
+                <input type="time" value="${time}" style="background:transparent; color:#fff; border:none; opacity:0.3;" onchange="saveData()">
             </div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
                 <div class="emoji-group">
-                    <button class="emoji-btn" data-score="0" onclick="toggleHabit(this)">🙁</button>
-                    <button class="emoji-btn" data-score="0.5" onclick="toggleHabit(this)">😐</button>
-                    <button class="emoji-btn" data-score="1" onclick="toggleHabit(this)">😊</button>
+                    <button class="emoji-btn ${activeEmojiIdx === 0 ? 'active' : ''}" data-score="0" onclick="toggleHabit(this)">🙁</button>
+                    <button class="emoji-btn ${activeEmojiIdx === 1 ? 'active' : ''}" data-score="0.5" onclick="toggleHabit(this)">😐</button>
+                    <button class="emoji-btn ${activeEmojiIdx === 2 ? 'active' : ''}" data-score="1" onclick="toggleHabit(this)">😊</button>
                 </div>
                 <button onclick="removeRow(this)" style="background:none; border:none; color:rgba(255,255,255,0.1); cursor:pointer; font-size:1.5rem;">✕</button>
             </div>
         `;
         document.getElementById('habit-list').appendChild(row);
         calcProgress();
+        saveData();
     }
 
     function removeRow(btn) {
         const row = btn.closest('.habit-row');
         row.style.opacity = '0';
         row.style.transform = 'translateX(20px)';
-        setTimeout(() => { row.remove(); calcProgress(); }, 300);
+        setTimeout(() => { 
+            row.remove(); 
+            calcProgress(); 
+            saveData();
+        }, 300);
     }
 
     function toggleHabit(btn) {
@@ -334,6 +363,7 @@
         group.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         calcProgress();
+        saveData();
     }
 
     function calcProgress() {
@@ -357,14 +387,17 @@
         el.classList.add('active');
     }
 
-    function updateLang() {
+    function updateLang(shouldSave) {
         const isRu = document.getElementById('lang').value === 'ru';
         document.getElementById('goal-text').innerText = isRu ? 'Статус' : 'Status';
         document.querySelector('.btn-add').innerText = isRu ? '+ Новая привычка' : '+ Add New Habit';
+        if(shouldSave) saveData();
     }
 
-    initStars(); animate();
-    addHabitRow();
+    // Запуск
+    initStars(); 
+    animate();
+    window.onload = loadData;
 </script>
 </body>
 </html>
